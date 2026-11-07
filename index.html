@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>五运六气 · 本地查询</title>
+<script src="bundle.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --panel: rgba(255,255,255,.055); --panel-border: rgba(255,255,255,.12);
+    --text: #e6edf3; --dim: #9aa7b4; --accent: #d4af37; --accent2: #7ec8e3;
+    --good: #3fb950; --warn: #d29922; --bad: #f85149; --tag: rgba(212,175,55,.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: radial-gradient(1200px 800px at 20% -10%, #16212e 0%, var(--bg) 55%); color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif; min-height: 100vh; padding: 24px 16px 60px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 26px; letter-spacing: 6px; text-align: center; color: var(--accent); margin-bottom: 4px; }
+  .sub { text-align: center; color: var(--dim); font-size: 12px; margin-bottom: 20px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
+  .toolbar input { background: var(--panel); border: 1px solid var(--panel-border); color: var(--text);
+    padding: 9px 14px; border-radius: 10px; font-size: 14px; width: 190px; outline: none; }
+  .toolbar input:focus { border-color: var(--accent); }
+  .toolbar button { background: linear-gradient(135deg, rgba(212,175,55,.85), rgba(212,175,55,.6));
+    color: #1a1500; border: none; padding: 9px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .toolbar button:hover { filter: brightness(1.1); }
+  .card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 14px;
+    padding: 18px 20px; margin-bottom: 16px; backdrop-filter: blur(12px); }
+  .card h2 { font-size: 16px; color: var(--accent); margin-bottom: 12px; letter-spacing: 2px;
+    display: flex; align-items: center; gap: 8px; }
+  .card h2::before { content: ""; width: 4px; height: 16px; background: var(--accent); border-radius: 2px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  .kv { display: flex; gap: 8px; line-height: 1.85; font-size: 14px; }
+  .kv b { color: var(--accent2); flex-shrink: 0; font-weight: 600; }
+  .kv span { color: var(--text); }
+  .tag { display: inline-block; background: var(--tag); color: var(--accent); border: 1px solid rgba(212,175,55,.35);
+    border-radius: 6px; padding: 1px 8px; font-size: 12px; margin: 2px 4px 2px 0; }
+  .section-title { color: var(--accent2); font-size: 13px; font-weight: 600; margin: 10px 0 4px; letter-spacing: 1px; }
+  .body-text { font-size: 13.5px; line-height: 1.9; color: #cdd9e5; }
+  .dim { color: var(--dim); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border: 1px solid var(--panel-border); padding: 7px 9px; text-align: left; line-height: 1.65; vertical-align: top; }
+  th { color: var(--accent); background: rgba(212,175,55,.08); font-weight: 600; white-space: nowrap; }
+  td .qi { color: var(--accent2); font-weight: 600; }
+  .ok { color: var(--good); } .reverse { color: var(--bad); }
+  .bar { height: 12px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; margin: 4px 0 10px; }
+  .bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+  .warn-high { border-left: 3px solid var(--bad); padding: 8px 12px; background: rgba(248,81,73,.08); border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+  .warn-mid { border-left: 3px solid var(--warn); padding: 8px 12px; background: rgba(210,153,34,.08); border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+  .disclaimer { text-align: center; color: var(--dim); font-size: 12px; margin-top: 24px; line-height: 1.8; }
+  .loading { text-align: center; color: var(--dim); padding: 30px 0; }
+  .error-box { color: var(--bad); text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>五运六气</h1>
+  <div class="sub">据《素问》七篇大论 · 《运气要诀》 · 《三因极一病证方论》推演 —— 年盘 / 月盘 / 八字先天</div>
+
+  <div class="toolbar">
+    <input id="yearInput" type="number" placeholder="年份，如 2026" min="1900" max="2100">
+    <button onclick="loadYear()">查年盘</button>
+    <input id="dateInput" type="date" placeholder="日期">
+    <button onclick="loadMonth()">查月盘</button>
+    <input id="birthInput" type="text" placeholder="生辰 1990-05-01T08:30" style="width:210px">
+    <input id="locInput" type="text" placeholder="出生地（可选，如 北京）" style="width:180px">
+    <button onclick="loadBazi()">查先天</button>
+    <button onclick="loadWarn()" style="background:linear-gradient(135deg,rgba(126,200,227,.85),rgba(126,200,227,.6))">流年预警</button>
+  </div>
+
+  <div id="main"><div class="loading">输入年份或生辰开始查询</div></div>
+
+  <div class="disclaimer">
+    本工具为传统运气学推演与文化参照，不是因果预测，不构成医疗建议。<br>
+    具体用药请在执业中医师指导下进行；急危重症请立即就医。
+  </div>
+</div>
+
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+async function api(path) {
+  // 双模式：GitHub Pages 纯静态用本地引擎（window.WUYUNQI），Node server.js 用 HTTP API
+  if (window.WUYUNQI) {
+    const [p, qs] = path.split('?');
+    const q = new URLSearchParams(qs || '');
+    const W = window.WUYUNQI;
+    if (p === '/api/year') return W.getYearYunqi(Number(q.get('y')) || new Date().getFullYear());
+    if (p === '/api/month') {
+      const d = (q.get('date') || new Date().toISOString().slice(0, 10)).split('-').map(Number);
+      return W.getMonthYunqi(d[0], d[1], d[2]);
+    }
+    if (p === '/api/bazi') {
+      const loc = q.get('location');
+      return W.buildConstitution(q.get('birth'), loc ? { location: loc } : {});
+    }
+    if (p === '/api/warn') {
+      const loc = q.get('location');
+      const c = W.buildConstitution(q.get('birth'), loc ? { location: loc } : {});
+      return W.yearWarn(c, Number(q.get('y')) || new Date().getFullYear());
+    }
+    throw new Error('未知接口：' + p);
+  }
+  const res = await fetch(path);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+function kv(label, val) { return `<div class="kv"><b>${esc(label)}</b><span>${val}</span></div>`; }
+
+/* ---------- 年盘 ---------- */
+async function loadYear() {
+  const y = Number($('yearInput').value) || new Date().getFullYear();
+  $('main').innerHTML = '<div class="loading">推演中…</div>';
+  try {
+    const d = await api('/api/year?y=' + y);
+    renderYear(d);
+  } catch (e) { $('main').innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
+}
+
+function renderYear(d) {
+  const fuHui = (d.note && d.note.length ? d.note : d.fuHui) || [];
+  const stepRows = d.steps.map((s) => `
+    <tr><td>${esc(s.name)}<br><span class="dim">${esc(s.period)}</span></td>
+    <td><span class="qi">主</span> ${esc(s.qi)}<br><span class="qi">客</span> ${esc(s.keQi)}</td>
+    <td class="${s.jiaLin.ok ? 'ok' : 'reverse'}">${esc(s.jiaLin.label)}</td>
+    <td>${esc(s.bing)}</td></tr>`).join('');
+  const yunFang = d.fangJi.yunFang, qiFang = d.fangJi.qiFang;
+  $('main').innerHTML = `
+  <div class="card">
+    <h2>${d.year} 年 · ${esc(d.ganzhi)} · ${esc(d.zheng)}</h2>
+    <div class="grid2">
+      <div>
+        ${kv('中运（岁运）', `<span class="tag">${esc(d.zhongYun.taiShao)}</span>${esc(d.zhongYun.wuxing)}运${d.zhongYun.level === 'taiGuo' ? '太过' : '不及'} ——【${esc(d.zhongYun.sanQiName)}之纪】`)}
+        <div class="body-text" style="margin:4px 0 8px">${esc(d.zhongYun.sanQiDesc)}</div>
+        ${kv('运气相临', d.linYun ? `${esc(d.linYun.type)} —— ${esc(d.linYun.desc)}` : '—')}
+        ${kv('运气生克', esc(d.relation.label))}
+        ${d.pingQi.length ? kv('平气判定', esc(d.pingQi.join('；'))) : ''}
+        ${fuHui.length ? kv('符会标记', fuHui.map((f) => `<span class="tag">${esc(f)}</span>`).join('')) : ''}
+        ${d.shengFu ? kv('胜复', esc(d.shengFu)) : ''}
+        ${d.zaiGong ? kv('灾宫', esc(d.zaiGong)) : ''}
+        ${kv('气化', esc(d.yunZhu))}
+      </div>
+      <div>
+        ${kv('司天（上半年）', `<b class="qi">${esc(d.siTian.qi)}</b> 应${esc(d.siTian.organs)}`)}
+        <div class="body-text">治则：${esc(d.siTian.zhiZhi)}</div>
+        ${kv('在泉（下半年）', `<b class="qi">${esc(d.zaiQuan.qi)}</b> 应${esc(d.zaiQuan.organs)}`)}
+        <div class="body-text">治则：${esc(d.zaiQuan.zhiZhi)}</div>
+        ${kv('其运/其化/其变', `${esc(d.qiYun)} / ${esc(d.qiHua || '胜复化')} / ${esc(d.qiBian || '—')}`)}
+        ${d.qiBingYun ? kv('其病', esc(d.qiBingYun)) : ''}
+        ${d.huaShu ? kv('三化数', esc(d.huaShu.zhong) + (d.huaShu.qita ? '，' + esc(d.huaShu.qita) : '')) : ''}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>疾病预测</h2>
+      <div class="section-title">岁运主病（${esc(d.yunBing.head.split('，')[0])}）</div>
+      <div class="body-text">${esc(d.yunBing.bing)}</div>
+      <div class="section-title">司天民病</div>
+      <div class="body-text">${esc(d.minBing)}</div>
+      <div class="section-title">在泉病候</div>
+      <div class="body-text">${esc(d.zaiQuan.bing)}</div>
+      <div class="section-title">复病</div>
+      <div class="body-text">${esc(d.yunBing.fuBing)}</div>
+      <div class="section-title">郁发（${esc(d.yuFa.faShi)}）</div>
+      <div class="body-text">先兆：${esc(d.yuFa.zhengZhao)}<br>病候：${esc(d.yuFa.bing)}</div>
+      <div class="section-title">危候</div>
+      <div class="body-text" style="color:var(--bad)">${esc(d.yunBing.maiJue)}</div>
+    </div>
+    <div class="card">
+      <h2>天象与病机</h2>
+      <div class="section-title">五星应运</div>
+      <div class="body-text">${esc(d.starOmen)}</div>
+      <div class="section-title">五行德变</div>
+      <div class="body-text">${esc(d.wuxingBian)}</div>
+      <div class="section-title">病机纲（玄机原病式）</div>
+      <div class="body-text">${esc(d.bingJi)}</div>
+      <div class="section-title">南北政脉不应</div>
+      <div class="body-text">${esc(d.nanBeiZheng.zheng)}年 —— ${esc(d.nanBeiZheng.note)}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>六步气 · 客主加临与逐步病候</h2>
+    <table><tr><th style="width:110px">步</th><th style="width:150px">主客</th><th style="width:190px">加临</th><th>病候（《六元正纪》）</th></tr>${stepRows}</table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>当年用药</h2>
+      <div class="section-title">岁宜总纲</div>
+      <div class="body-text">${esc(d.suiYi)}</div>
+      <div class="section-title">药食宜（《六元正纪》）</div>
+      <div class="body-text">上（司天）${esc(d.yaoShiYi.shang)}　中（岁运）${esc(d.yaoShiYi.zhong)}　下（在泉）${esc(d.yaoShiYi.xia)}</div>
+      <div class="section-title">食岁谷</div>
+      <div class="body-text">${esc(d.shiGu)}</div>
+      <div class="section-title">郁发治则</div>
+      <div class="body-text">${esc(d.yuFa.zhi)}</div>
+    </div>
+    <div class="card">
+      <h2>运气方（《三因方》）</h2>
+      <div class="section-title">岁运方 · ${esc(yunFang.name)}</div>
+      <div class="body-text">${esc(yunFang.zhu)}</div>
+      <div class="section-title">司天在泉方 · ${esc(qiFang.name)}</div>
+      <div class="body-text">${esc(qiFang.zhu)}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- 月盘 ---------- */
+async function loadMonth() {
+  const date = $('dateInput').value;
+  if (!date) { alert('请选择日期'); return; }
+  try {
+    const d = await api('/api/month?date=' + date);
+    renderMonth(d);
+  } catch (e) { $('main').innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
+}
+
+function renderMonth(d) {
+  $('main').innerHTML = `
+  <div class="card">
+    <h2>${d.year}-${String(d.month).padStart(2,'0')}${d.day ? '-' + String(d.day).padStart(2,'0') : ''} 月盘 · 岁在${esc(d.ganzhi)} · 月建${esc(d.monthGanzhi)}</h2>
+    ${kv('所在六步', `${esc(d.step.name)}（${esc(d.step.period)}，${esc(d.step.months)}）`)}
+    ${kv('主气', esc(d.step.zhuQi))}
+    ${kv('客气', esc(d.step.keQi))}
+    ${kv('客主加临', `<span class="${d.step.jiaLin.ok ? 'ok' : 'reverse'}">${esc(d.step.jiaLin.label)}</span>`)}
+    ${kv('主运', `${esc(d.yunStep.zhuYun.name)}·${esc(d.yunStep.zhuYun.yin)}音（${esc(d.yunStep.zhuYun.wuxing)}），${esc(d.yunStep.zhuYun.start)}起`)}
+    ${kv('客运', `${esc(d.yunStep.keYun.taiShao)}（${esc(d.yunStep.keYun.wuxing)}）—— 以年中运为初运相生轮转`)}
+    <div class="section-title">本步病候（《六元正纪》）</div>
+    <div class="body-text">${esc(d.step.bing)}</div>
+    <div class="section-title">本步用药方向</div>
+    <div class="body-text">药食宜：上${esc(d.yongYao.yaoShiYi.shang)} / 中${esc(d.yongYao.yaoShiYi.zhong)} / 下${esc(d.yongYao.yaoShiYi.xia)}<br>
+    岁运方：${esc(d.yongYao.fangJi.yunFang.name)}<br>司天在泉方：${esc(d.yongYao.fangJi.qiFang.name)}（随六步加减）</div>
+  </div>`;
+}
+
+/* ---------- 八字先天 ---------- */
+async function loadBazi() {
+  const birth = $('birthInput').value.trim();
+  if (!birth) { alert('请输入生辰，如 1990-05-01T08:30'); return; }
+  const loc = $('locInput').value.trim();
+  $('main').innerHTML = '<div class="loading">推演中…</div>';
+  try {
+    const d = await api('/api/bazi?birth=' + encodeURIComponent(birth) + (loc ? '&location=' + encodeURIComponent(loc) : ''));
+    renderBazi(d);
+  } catch (e) { $('main').innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
+}
+
+function renderBazi(c) {
+  const bars = c.organs.map((o) => `
+    <div class="kv" style="margin-top:6px"><b style="width:120px">${esc(o.wuxing)} · ${esc(o.zang)}（${esc(o.fu)}）</b>
+    <span style="flex:1"><span class="dim">${o.percent}%</span>　${o.level === '偏旺' ? '<span class="reverse">偏旺</span>' : o.level === '不足' ? '<span style="color:var(--warn)">不足</span>' : '<span class="ok">平</span>'}<br>
+    <span class="dim" style="font-size:12px">易患：${esc(o.bing)}</span></span></div>
+    <div class="bar"><i style="width:${Math.min(o.percent * 2.2, 100)}%"></i></div>`).join('');
+  const weakCards = c.xianTianBuZu.map((w) => `
+    <div class="warn-mid"><b>${esc(w.organ)}（${esc(w.wuxing)}，占${w.percent}%）</b>
+    <div class="body-text">易患：${esc(w.risk)}<br>调护：${esc(w.tiaoHu)}</div></div>`).join('');
+  $('main').innerHTML = `
+  <div class="card">
+    <h2>先天禀赋 · ${esc(c.birth)}</h2>
+    ${kv('四柱八字', `${esc(c.bazi.year)} ${esc(c.bazi.month)} ${esc(c.bazi.day)} ${esc(c.bazi.time)}　<span class="dim">日主 ${esc(c.dayMaster.gan)}（${esc(c.dayMaster.wuxing)}）</span>`)}
+    ${kv('生年干支', esc(c.birthYearGanzhi))}
+    ${kv('生年岁运', `<span class="tag">${esc(c.birthYun.taiShao)}</span>${esc(c.birthYun.wuxing)}运${c.birthYun.level === 'taiGuo' ? '太过' : '不及'}`)}
+    <div class="body-text" style="margin:6px 0">${esc(c.birthYun.note)}</div>
+    ${kv('生年司天', esc(c.birthSiTian.qi))}
+    <div class="body-text">${esc(c.birthSiTian.note)}</div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>八字五行谱</h2>${bars}</div>
+    <div class="card"><h2>先天不足与偏旺</h2>${weakCards}
+      <div class="warn-high"><b>先天偏旺：${esc(c.xianTianWang.organ)}（${esc(c.xianTianWang.wuxing)}，占${c.xianTianWang.percent}%）</b>
+      <div class="body-text">${esc(c.xianTianWang.note)}</div></div>
+    </div>
+  </div>
+  ${c.region ? `
+  <div class="card">
+    <h2>出生地禀赋（《异法方宜论》）· ${esc(c.region.location)}</h2>
+    ${kv('方位五行', `${esc(c.region.direction)}方（${esc(c.region.wuxing)}）`)}
+    <div class="body-text">${esc(c.region.origin)}</div>
+    <div class="section-title">地域病候</div>
+    <div class="body-text">${esc(c.region.regionBing)}</div>
+    ${c.region.jiaoZheng ? `<div class="section-title">气候修正</div><div class="body-text">${esc(c.region.jiaoZheng)}</div>` : ''}
+  </div>` : ''}
+  <div class="card">
+    <h2>成年后需注意的疾病（弱脏 × 生年岁运 × 出生地）</h2>
+    ${c.grownRisks.map((r) => `
+    <div class="${r.source === '八字弱脏' ? 'warn-mid' : 'warn-mid'}" style="border-left-color:${r.source === '八字弱脏' ? 'var(--bad)' : 'var(--warn)'}">
+      <b>◆ [${esc(r.source)}] ${esc(r.organ)}</b>
+      <div class="body-text">${esc(r.text)}</div>
+    </div>`).join('')}
+  </div>
+  <div class="card">
+    <h2>平时生活饮食起居注意</h2>
+    ${c.lifeStyle.perOrgan.map((p) => `
+    <div class="section-title">养${esc(p.organ)}（${esc(p.wuxing)}）</div>
+    <div class="body-text">食养宜：${esc(p.yi)}<br>食养忌：${esc(p.ji)}<br>起居：${esc(p.qiJu)}<br>情志：${esc(p.qingZhi)}<br>导引：${esc(p.yunDong)}</div>`).join('')}
+    <div class="section-title">总则</div>
+    <div class="body-text">${c.lifeStyle.zongZe.map((z) => '· ' + esc(z)).join('<br>')}</div>
+    <div class="section-title">药食方向</div>
+    <div class="body-text">${esc(c.lifeStyle.yaoShi)}</div>
+  </div>`;
+}
+
+/* ---------- 流年预警 ---------- */
+async function loadWarn() {
+  const birth = $('birthInput').value.trim();
+  if (!birth) { alert('请输入生辰'); return; }
+  const y = Number($('yearInput').value) || new Date().getFullYear();
+  const loc = $('locInput').value.trim();
+  $('main').innerHTML = '<div class="loading">推演中…</div>';
+  try {
+    const d = await api('/api/warn?y=' + y + '&birth=' + encodeURIComponent(birth) + (loc ? '&location=' + encodeURIComponent(loc) : ''));
+    renderWarn(d);
+  } catch (e) { $('main').innerHTML = `<div class="error-box">${esc(e.message)}</div>`; }
+}
+
+function renderWarn(w) {
+  const warns = w.warns.length
+    ? w.warns.map((x) => `
+      <div class="${x.level === '高' ? 'warn-high' : 'warn-mid'}">
+        <b>${x.level === '高' ? '🔴' : '🟡'} ${esc(x.level)}风险 · ${esc(x.organ)}</b>
+        <div class="body-text">理由：${esc(x.reason)}<br>易患：${esc(x.bing)}<br>方向：${esc(x.fang)}</div>
+      </div>`).join('')
+    : '<div class="body-text ok">本年无高发交互预警：先天弱脏不受岁运克伐，亦无凶岁标记。仍宜按岁宜调摄。</div>';
+  $('main').innerHTML = `
+  <div class="card">
+    <h2>${w.year} 年 × 先天禀赋 交互预警</h2>
+    ${kv('流年运气', `${esc(w.yunqiSummary.ganzhi)}　${esc(w.yunqiSummary.zhongYun)}　司天${esc(w.yunqiSummary.siTian)}　在泉${esc(w.yunqiSummary.zaiQuan)}　${esc(w.yunqiSummary.linYun || '')}`)}
+    ${warns}
+    <div class="section-title">本年用药总纲</div>
+    <div class="body-text">岁宜：${esc(w.yongYao.suiYi)}<br>
+    药食宜：上${esc(w.yongYao.yaoShiYi.shang)} / 中${esc(w.yongYao.yaoShiYi.zhong)} / 下${esc(w.yongYao.yaoShiYi.xia)}<br>
+    岁运方：${esc(w.yongYao.yunFang.name)} —— ${esc(w.yongYao.yunFang.zhu.split('。')[0])}<br>
+    司天在泉方：${esc(w.yongYao.qiFang.name)}（六步加减）</div>
+  </div>`;
+}
+
+/* ---------- 初始化 ---------- */
+(function init() {
+  const now = new Date();
+  $('yearInput').value = now.getFullYear();
+  $('dateInput').value = now.toISOString().slice(0, 10);
+  loadYear();
+})();
+</script>
+</body>
+</html>
